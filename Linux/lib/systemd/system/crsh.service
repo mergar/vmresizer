@@ -1,0 +1,11 @@
+[Unit]
+Description=Manage crsh tool
+After=network.target
+
+[Service]
+WorkingDirectory=/tmp
+ExecStart=/usr/bin/crsh-helper.sh
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

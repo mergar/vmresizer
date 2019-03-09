@@ -1,0 +1,88 @@
+#!/bin/sh
+disk="$1"
+newsize="$2"
+
+rootsize=$(( newsize - 2 ))
+echo "FDISK rootsize $rootsize"
+
+echo ":: Recover GPART"
+
+# gpart recover/extend size
+gdisk ${disk} <<EOF
+recover
+w
+Y
+Y
+EOF
+
+echo ":: Remove Swap"
+
+
+# remove swap
+echo "d
+\n
+p
+w" | fdisk ${disk}
+
+echo ":: Remove EXT"
+
+# remove ext4
+echo "d
+\n
+p
+w" |fdisk ${disk}
+
+echo ":: Create new EXT"
+
+# create new ext4
+echo "n
+\n
++${rootsize}G
+p
+w" |fdisk ${disk}
+
+echo ":: Create new SWAP"
+
+# swap
+echo "n
+\n
+\n
+t
+\n
+19
+p
+w" |fdisk ${disk}
+
+set -o xtrace
+
+partprobe ${disk}1
+partprobe ${disk}2
+partprobe ${disk}3
+partprobe ${disk}
+
+echo ":: e2fsck"
+e2fsck -fy ${disk}2
+e2fsck -y ${disk}2
+resize2fs ${disk}2
+e2fsck -y ${disk}2
+
+SWAP_UUID=$( mkswap ${disk}3 |grep UUID |cut -d "=" -f 2 )
+echo
+echo "SWAP: $SWAP_UUID"
+echo
+mount ${disk}2 /mnt
+
+echo ":: ${disk}2 Mounted"
+
+cp /mnt/etc/fstab /tmp
+grep -v " sw " /tmp/fstab |grep . > /mnt/etc/fstab
+
+cat >> /mnt/etc/fstab <<EOF
+UUID=${SWAP_UUID} none            swap    sw              0       0
+EOF
+echo
+cat /mnt/etc/fstab
+sync
+
+echo " :: umount"
+umount /mnt
