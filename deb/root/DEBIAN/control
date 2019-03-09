@@ -1,0 +1,10 @@
+Package: crsh
+Version: 0.0.1
+Architecture: amd64
+Maintainer: olevole <olevole@olevole.ru>
+Provides: crsh
+Section: devel
+Priority: extra
+Homepage: https://www.bsdstore.ru
+Description: CBSD cloud  helper
+  (c) 2019 CBSD Project

@@ -14,7 +14,7 @@ clean:
 	${RM} -f crsh
 
 crsh:
-	${CC} crsh.c -o crsh && ${STRIP} crsh
+	${CC} -static crsh.c -o crsh && ${STRIP} crsh
 
 install:
 	${INSTALL} crsh ${PREFIX}/bin/crsh

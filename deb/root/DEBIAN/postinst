@@ -1,0 +1,18 @@
+#!/bin/sh
+
+case "$1" in
+	configure)
+		/usr/bin/crsh-resize.sh -b
+		systemctl enable crsh.service
+		exit 0
+		;;
+
+	abort-upgrade|abort-remove|abort-deconfigure)
+		[ -r /etc/resizer_disk_local.txt ] && rm -f /etc/resizer_disk_local.txt
+		exit 0
+		;;
+	*)
+		LOG "postinst called with unknown argument: $*" >&2
+		exit 1
+		;;
+esac
