@@ -148,3 +148,4 @@ fi
 
 configure_net
 [ -n "${authkey}" ] && configure_authkey
+exit 0
