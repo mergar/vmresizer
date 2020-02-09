@@ -73,10 +73,7 @@ configure_net()
 			[ -z "${gw}" ] && echo "No gw" && return 1
 			echo "inet ${ip4_addr} ${netmask}" > /etc/hostname.${mynic}
 			echo "${gw}" > /etc/mygate
-			#/usr/sbin/service netif stop > /dev/null 2>&1
-			#/usr/sbin/service netif start > /dev/null 2>&1
-			#/usr/sbin/service routing stop > /dev/null 2>&1
-			#/usr/sbin/service routing start > /dev/null 2>&1
+			/bin/sh /etc/netstart ${mynic} > /dev/null 2>&1
 			;;
 	esac
 }
