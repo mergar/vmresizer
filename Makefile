@@ -24,4 +24,4 @@ install:
 	# Make bootstrap
 	${PREFIX}/bin/crsh-resize.sh -b
 	# os-specific install
-	$(KERNEL)/install.sh
+#	$(KERNEL)/install.sh

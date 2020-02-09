@@ -10,12 +10,21 @@ err() {
 
 get_nic()
 {
-	mynic=$( for i in $( /sbin/ifconfig -l ); do
-	[ $i = "lo0" ] && continue
-		echo $i
-	done )
+	local _nic_list=$( ifconfig |grep -E "^[aA-zZ]+" |cut -d : -f 1 | xargs )
+	local _mynic i
 
-	echo $mynic
+	for i in ${_nic_list}; do
+		case "${i}" in
+			lo0|enc*|pflog*)
+				continue
+				;;
+			*)
+				_mynic="${i}"
+				;;
+		esac
+	done
+
+	echo ${_mynic}
 
 }
 
@@ -26,7 +35,10 @@ configure_net()
 
 	mynic=$( get_nic )
 
-	[ -z "${mynic}" ] && return 0
+	if [ -z "${mynic}" ]; then
+		echo "No nic"
+		return 0
+	fi
 
 	if [ -z "${ip4_addr}" ]; then
 			echo "No ip4_addr"
@@ -55,14 +67,16 @@ configure_net()
 			# > /dev/null 2>&1
 			;;
 		*)
-			[ -z "${netmask}" ] && netmask="255.255.255.0"
+			#[ -z "${netmask}" ] && netmask="255.255.255.0"
+			netmask="0xffffff00"
+			
 			[ -z "${gw}" ] && echo "No gw" && return 1
-			sysrc ifconfig_${mynic}="inet ${ip4_addr} netmask ${netmask}"
-			sysrc defaultrouter="${gw}"
-			/usr/sbin/service netif stop > /dev/null 2>&1
-			/usr/sbin/service netif start > /dev/null 2>&1
-			/usr/sbin/service routing stop > /dev/null 2>&1
-			/usr/sbin/service routing start > /dev/null 2>&1
+			echo "inet ${ip4_addr} ${netmask}" > /etc/hostname.${mynic}
+			echo "${gw}" > /etc/mygate
+			#/usr/sbin/service netif stop > /dev/null 2>&1
+			#/usr/sbin/service netif start > /dev/null 2>&1
+			#/usr/sbin/service routing stop > /dev/null 2>&1
+			#/usr/sbin/service routing start > /dev/null 2>&1
 			;;
 	esac
 }
@@ -99,15 +113,27 @@ configure_authkey()
 
 
 # MAIN
+[ ! -d /etc/crsh ] && mkdir /etc/crsh
 tmp="/tmp/crsh.tmp"
 oldmd=""
 
 [ -f "${tmp}.md5" ] && oldmd=$( /bin/cat ${tmp}.md5 )
 [ -r ${tmp} ] && /bin/rm -f ${tmp}
 
-for i in $( /sbin/sysctl -n kern.disks ); do
-	printf "Processing $i ..." >> /var/log/crsh.log
-	/usr/bin/crsh /dev/${i} ${tmp} >> /var/log/crsh.log 2>&1
+disk_list=$( sysctl -n hw.disknames | tr "," "\n" | while read _dev; do
+	p1=${_dev%%:*}
+	p2=${_dev##*:}
+	printf "${p1} "
+done )
+
+#echo "${disk_list}"
+
+for i in ${disk_list}; do
+	echo "Processing $i ..." >> /var/log/crsh.log
+	_dev=$( file -s /dev/sd* |grep "Bourne shell script text" |cut -d : -f1 |awk '{printf $1}' )
+	[ -z "${_dev}" ] && continue
+	echo "Found: ${_dev} ..." >> /var/log/crsh.log
+	/usr/bin/crsh ${_dev} ${tmp} >> /var/log/crsh.log 2>&1
 done
 
 if [ -f ${tmp} ]; then

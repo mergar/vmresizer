@@ -1,27 +1,9 @@
-#! /bin/sh
+#!/bin/ksh
 #
-# $FreeBSD:$
-#
+# $OpenBSD: crsh-helper,v 1.2 2020/02/20 19:52:12 olevole Exp $
 
-# PROVIDE: crsh
-# REQUIRE: DAEMON
-# KEYWORD: shutdown
+daemon="/usr/bin/crsh-helper.sh"
 
-#
-# Add the following lines to /etc/rc.conf to enable crsh:
-#
-#crsh_enable="YES"
+. /etc/rc.d/rc.subr
 
-. /etc/rc.subr
-
-name="crsh"
-rcvar="crsh_enable"
-
-load_rc_config $name
-
-: ${crsh_enable:=NO}
-
-command="/usr/bin/crsh-helper.sh"
-command_args=""
-
-run_rc_command "$1"
+rc_cmd $1

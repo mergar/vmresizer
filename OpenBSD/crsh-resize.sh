@@ -10,7 +10,7 @@ err() {
 	exit $exitval
 }
 
-trap "iscsictl -Ra" HUP INT ABRT BUS TERM EXIT
+#trap "iscsictl -Ra" HUP INT ABRT BUS TERM EXIT
 
 zfs=0
 
@@ -28,7 +28,7 @@ while getopts "a:bh:r:t:s:l:p:i:g:z:" opt; do
 		g) gw="${OPTARG}" ;;
 		z) zfs="${OPTARG}" ;;
 	esac
-	shift $(($OPTIND - 1))
+#	shift $(($OPTIND - 1))
 done
 
 
@@ -45,7 +45,14 @@ usage()
 
 bootstrap()
 {
-	local mydisk=$( sysctl -qn kern.disks )
+	local mydisk
+
+	mydisk=$( sysctl -n hw.disknames | tr "," "\n" | while read _dev; do
+		p1=${_dev%%:*}
+		p2=${_dev##*:}
+		printf "${p1} "
+	done )
+
 	[ ! -d /usr/local/etc ] && mkdir /usr/local/etc
 	echo "local_disk=\"${mydisk}\"" > ${config}
 }
@@ -99,29 +106,14 @@ for attempt in 1 2 3 4 5; do
 	sleep 1
 done
 
-echo "RDY"
+set +o xtrace
+gpart delete -i 3 ${guest_disk}
+fsck_ufs -y ${guest_disk}p2
+gpart resize -i 2 -s ${datasize}g ${guest_disk}
+growfs -y ${guest_disk}p2
+gpart add -t freebsd-swap ${guest_disk}
+/sbin/mount ${guest_disk}p2 /mnt
 
-if [ ${zfs} -eq 1 ]; then
-	trap "zpool export zroot" HUP INT ABRT BUS TERM EXIT
-	set +o xtrace
-	zpool import -f -R /mnt zroot
-	# /dev/da4p4 << ZPOOL
-	# loss 1 G?
-	datasize=$(( datasize - 1 ))
-	echo "gpart resize -i 4 -s ${datasize}g ${guest_disk}"
-	gpart resize -i 4 -s ${datasize}g ${guest_disk}
-	zpool online -e zroot /dev/da0p4
-	zfs mount -a
-	zfs mount zroot/ROOT/default
-else
-	set +o xtrace
-	gpart delete -i 3 ${guest_disk}
-	fsck_ufs -y ${guest_disk}p2
-	gpart resize -i 2 -s ${datasize}g ${guest_disk}
-	growfs -y ${guest_disk}p2
-	gpart add -t freebsd-swap ${guest_disk}
-	/sbin/mount ${guest_disk}p2 /mnt
-fi
 set -o xtrace
 set -o errexit
 echo "MOUNTED"
