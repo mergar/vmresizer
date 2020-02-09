@@ -1,0 +1,27 @@
+#! /bin/sh
+#
+# $FreeBSD:$
+#
+
+# PROVIDE: crsh
+# REQUIRE: DAEMON
+# KEYWORD: shutdown
+
+#
+# Add the following lines to /etc/rc.conf to enable crsh:
+#
+#crsh_enable="YES"
+
+. /etc/rc.subr
+
+name="crsh"
+rcvar="crsh_enable"
+
+load_rc_config $name
+
+: ${crsh_enable:=NO}
+
+command="/usr/bin/crsh-helper.sh"
+command_args=""
+
+run_rc_command "$1"
